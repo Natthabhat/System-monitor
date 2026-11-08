@@ -21,6 +21,8 @@ PORT = int(os.environ.get("MONITOR_PORT", "4400"))
 BIND = os.environ.get("MONITOR_BIND", "0.0.0.0")
 INTERVAL = float(os.environ.get("MONITOR_INTERVAL", "1.0"))
 HERE = os.path.dirname(os.path.abspath(__file__))
+STATIC = os.path.join(HERE, "static")
+STATIC_TYPES = {".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json"}
 
 SKIP_FS = {"squashfs", "tmpfs", "devtmpfs", "overlay", "proc", "sysfs", "cgroup2", "nsfs"}
 SKIP_NIC_PREFIX = ("lo", "veth", "br-", "docker", "virbr")
@@ -391,6 +393,8 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             with open(os.path.join(HERE, "index.html"), "rb") as f:
                 self._send(200, f.read(), "text/html; charset=utf-8")
+        elif path == "/favicon.ico" or path.startswith("/static/"):
+            self.static(os.path.basename(path))
         elif path == "/api/info":
             self._send(200, json.dumps(SAMPLER.static).encode(), "application/json")
         elif path == "/api/snapshot":
@@ -399,6 +403,21 @@ class Handler(BaseHTTPRequestHandler):
             self.stream()
         else:
             self._send(404, b"not found", "text/plain")
+
+    def static(self, name):
+        # basename only + extension whitelist: no path traversal, nothing but icons served
+        ext = os.path.splitext(name)[1].lower()
+        fp = os.path.join(STATIC, name)
+        if ext not in STATIC_TYPES or not os.path.isfile(fp):
+            return self._send(404, b"not found", "text/plain")
+        with open(fp, "rb") as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", STATIC_TYPES[ext])
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.end_headers()
+        self.wfile.write(body)
 
     def stream(self):
         self.send_response(200)

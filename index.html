@@ -118,7 +118,44 @@ td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .gauge .g-num small { font-size: .38em; font-weight: 500; margin-left: 2px; color: var(--muted); }
 .gauge .g-sub { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gauge.na { opacity: .45; }
-.stor-head { display: flex; justify-content: space-between; align-items: center; }
+.stor-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: relative; }
+.stor-tools { display: flex; align-items: center; gap: 12px; }
+.icon-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: transparent;
+            color: var(--muted); cursor: pointer; display: inline-grid; place-items: center; padding: 0; }
+.icon-btn:hover, .icon-btn[aria-expanded="true"] { color: var(--text); border-color: var(--muted); background: var(--panel-2); }
+.icon-btn svg { width: 15px; height: 15px; }
+.pop { position: absolute; right: 0; top: 36px; z-index: 20; width: min(340px, calc(100vw - 48px));
+       background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+       box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.pop h4 { margin: 2px 0 6px; font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.pop label { display: flex; align-items: center; gap: 9px; padding: 6px 4px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.pop label:hover { background: var(--panel-2); }
+.pop label small { color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pop input { accent-color: var(--c1); width: 15px; height: 15px; margin: 0; }
+.pop hr { border: 0; border-top: 1px solid var(--border); margin: 8px 0; }
+.pop .pop-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.pop .pop-actions button { font: inherit; font-size: 12px; background: transparent; border: 1px solid var(--border);
+       color: var(--muted); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.pop .pop-actions button:hover { color: var(--text); border-color: var(--muted); }
+.badge { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px;
+         border-radius: 4px; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); margin-left: 6px; }
+.drive .dmeta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted);
+                margin-top: 6px; font-variant-numeric: tabular-nums; }
+.blk.unmounted { display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--muted);
+                 font-size: 12px; background: repeating-linear-gradient(135deg, var(--panel-2) 0 8px, transparent 8px 16px); border: 1px dashed var(--border); }
+.parts { margin-top: 8px; display: grid; gap: 6px; }
+.part { font-size: 12px; }
+.part .pt { display: flex; justify-content: space-between; gap: 8px; }
+.part .pt span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part .pt span:last-child { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.part .bar { height: 4px; margin-top: 3px; }
+.stor-empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+/* clickable chart legends */
+.legend .lg { font: inherit; font-size: 12px; color: var(--muted); background: transparent; border: 1px solid transparent;
+              border-radius: 6px; padding: 2px 7px 2px 5px; margin-left: -5px; cursor: pointer; display: inline-flex; align-items: center; }
+.legend .lg:hover { border-color: var(--border); color: var(--text); }
+.legend .lg[aria-pressed="false"] { opacity: .5; text-decoration: line-through; }
+.legend .lg[aria-pressed="false"] i { background: transparent !important; box-shadow: inset 0 0 0 1px var(--muted); }
 .stor-legend { font-size: 11px; color: var(--muted); display: flex; gap: 12px; }
 .stor-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
 .stor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
@@ -167,7 +204,15 @@ td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
   <section class="block panel" data-id="storage">
     <div class="stor-head"><h3><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>Storage</h3>
-      <div class="stor-legend"><span><i style="background:var(--c1)"></i>Used</span><span><i style="background:color-mix(in srgb,var(--muted) 45%,transparent)"></i>Free</span></div></div>
+      <div class="stor-tools">
+        <span class="stor-legend"><span><i style="background:var(--c1)"></i>Used</span><span><i style="background:color-mix(in srgb,var(--muted) 45%,transparent)"></i>Free</span></span>
+        <small id="stor-count" style="color:var(--muted)"></small>
+        <button class="icon-btn" id="stor-gear" type="button" aria-haspopup="true" aria-expanded="false" title="Choose which drives to show">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="pop" id="stor-pop" hidden></div>
+    </div>
     <div class="stor-grid" id="storage"></div>
   </section>
 
@@ -179,7 +224,7 @@ td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
   <section class="block w2 card" data-id="c-mem">
     <h2><span class="ttl"><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>Memory</span> <small id="mem-meta"></small></h2>
     <canvas id="ch-mem"></canvas>
-    <div class="legend"><span><i style="background:var(--c2)"></i>RAM used</span><span><i style="background:var(--c3)"></i>Swap used</span></div>
+    <div class="legend" id="lg-mem"></div>
     <div class="bar-row"><div class="top"><span>RAM (used · cache)</span><span id="mem-txt"></span></div>
       <div class="bar stack"><div id="mem-used" style="background:var(--c2)"></div><div id="mem-cache" style="background:color-mix(in srgb,var(--c2) 35%,transparent)"></div></div></div>
     <div class="bar-row"><div class="top"><span>Swap</span><span id="swap-txt"></span></div>
@@ -188,25 +233,25 @@ td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
   <section class="block w2 card" data-id="c-net">
     <h2><span class="ttl"><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>Network</span> <small id="net-meta"></small></h2>
     <canvas id="ch-net"></canvas>
-    <div class="legend"><span><i style="background:var(--c1)"></i>Download</span><span><i style="background:var(--c4)"></i>Upload</span></div>
+    <div class="legend" id="lg-net"></div>
     <div class="table-wrap"><table id="nics"></table></div>
   </section>
   <section class="block w2 card" data-id="c-disk">
     <h2><span class="ttl"><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>Disk I/O</span> <small id="disk-meta"></small></h2>
     <canvas id="ch-disk"></canvas>
-    <div class="legend"><span><i style="background:var(--c2)"></i>Read</span><span><i style="background:var(--c3)"></i>Write</span></div>
+    <div class="legend" id="lg-disk"></div>
     <div id="disks"></div>
   </section>
   <section class="block w2 card" data-id="c-gpu">
     <h2><span class="ttl"><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>GPU</span> <small id="gpu-meta"></small></h2>
     <canvas id="ch-gpu"></canvas>
-    <div class="legend" id="gpu-legend"></div>
+    <div class="legend" id="lg-gpu"></div>
     <div id="gpus" style="margin-top:10px"></div>
   </section>
   <section class="block w2 card" data-id="c-power">
     <h2><span class="ttl"><button class="grip" type="button" aria-label="Drag to move this section" title="Drag to move"></button>Power</span> <small id="pw-meta"></small></h2>
     <canvas id="ch-power"></canvas>
-    <div class="legend"><span><i style="background:var(--c3)"></i>Total</span><span><i style="background:var(--c1)"></i>CPU</span><span><i style="background:var(--c4)"></i>GPU</span></div>
+    <div class="legend" id="lg-power"></div>
     <div class="table-wrap"><table id="pw-table"></table></div>
     <div class="note" id="pw-note"></div>
   </section>
@@ -227,6 +272,11 @@ const hist = { cpu: [], mem: [], swap: [], rx: [], tx: [], rd: [], wr: [], gpu: 
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// localStorage wrapper: storage can be blocked (private mode), so never let it throw
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
 
 function bytes(n, d = 1) {
   if (n == null) return '–';
@@ -474,20 +524,85 @@ function renderMeters(s) {
   });
   m.ram.set(s.mem.percent, 100, r0(s.mem.percent), { color: loadColor(s.mem.percent), sub: bytes(s.mem.used, 2) });
 
-  const gb = n => {
-    const v = n / 1e9;
-    return v >= 1000 ? [(v / 1000).toFixed(2), 'TB'] : [v >= 100 ? v.toFixed(0) : v.toFixed(1), 'GB'];
-  };
-  $('storage').innerHTML = s.disks.filter(d => d.total > 2e9).map(d => {
-    const free = d.total - d.used, [u, uu] = gb(d.used), [f, fu] = gb(free), [tt, tu] = gb(d.total);
-    const dev = d.device.replace('/dev/', '');
-    return `<div class="drive"><div class="dname"><span title="${esc(d.device)}">${esc(d.mount)} · ${esc(dev)}</span><span>${tt} ${tu}</span></div>
-      <div class="blk used"><div class="bf" style="width:${d.percent}%;--fc:var(${d.percent >= 90 ? '--bad' : d.percent >= 75 ? '--warn' : '--c1'})"></div>
-        <div class="bt"><b>${u}<small>${uu}</small></b><span>Used</span></div></div>
-      <div class="blk free"><div class="bf" style="width:${100 - d.percent}%"></div>
-        <div class="bt"><b>${f}<small>${fu}</small></b><span>Free</span></div></div></div>`;
+  renderStorage(s.storage || []);
+}
+
+// ---------- storage: every drive, with a settings popover to hide/show ----------
+const STOR_KEY = 'server-monitor.storage.v1';
+const storPrefs = Object.assign({ hidden: [], parts: true }, store.get(STOR_KEY, {}));
+const saveStor = () => store.set(STOR_KEY, storPrefs);
+let storList = [];
+const gb = n => {
+  const v = n / 1e9;
+  return v >= 1000 ? [(v / 1000).toFixed(2), 'TB'] : [v >= 100 ? v.toFixed(0) : v.toFixed(1), 'GB'];
+};
+const gbs = n => gb(n).join(' ');
+const tran = d => (d.tran ? d.tran.toUpperCase() : '') + (d.tran === 'sata' && d.rotational ? ' HDD' : d.tran === 'sata' ? ' SSD' : '');
+const lvl = pc => pc >= 90 ? '--bad' : pc >= 75 ? '--warn' : '--c1';
+
+function renderStorage(list) {
+  storList = list;
+  const shown = list.filter(d => !storPrefs.hidden.includes(d.id));
+  const nh = list.length - shown.length;
+  $('stor-count').textContent = `${list.length} drive${list.length === 1 ? '' : 's'}${nh ? ` · ${nh} hidden` : ''}`;
+  if (!$('stor-pop').hidden) renderStorPop();
+  if (!shown.length) { $('storage').innerHTML = '<div class="stor-empty">All drives are hidden. Use the ⚙ button to choose which drives to show.</div>'; return; }
+  $('storage').innerHTML = shown.map(d => {
+    let body;
+    if (d.mounted) {
+      const pc = d.used / d.total * 100, [u, uu] = gb(d.used), [f, fu] = gb(d.total - d.used);
+      body = `<div class="blk used"><div class="bf" style="width:${pc}%;--fc:var(${lvl(pc)})"></div>
+          <div class="bt"><b>${u}<small>${uu}</small></b><span>Used · ${pc.toFixed(0)}%</span></div></div>
+        <div class="blk free"><div class="bf" style="width:${100 - pc}%"></div>
+          <div class="bt"><b>${f}<small>${fu}</small></b><span>Free</span></div></div>`;
+    } else {
+      body = `<div class="blk unmounted"><span>Not mounted</span><span>${gbs(d.size)}</span></div>`;
+    }
+    const parts = storPrefs.parts && d.parts.length ? `<div class="parts">${d.parts.map(p => {
+      const name = [p.label, p.fstype].filter(Boolean).join(' · ') || 'no filesystem';
+      const right = p.mount ? `${esc(p.mount)} · ${p.total ? gbs(p.used) + ' / ' + gbs(p.total) : gbs(p.size)}` : `not mounted · ${gbs(p.size)}`;
+      return `<div class="part"><div class="pt"><span title="${esc(p.path)}">${esc(p.name)} <span style="color:var(--muted)">${esc(name)}</span></span><span>${right}</span></div>
+        ${p.percent != null ? `<div class="bar"><div style="width:${p.percent}%;background:var(${lvl(p.percent)})"></div></div>` : ''}</div>`;
+    }).join('')}</div>` : '';
+    return `<div class="drive">
+      <div class="dname"><span title="${esc(d.path)}">${esc(d.model)}<span class="badge">${esc(tran(d) || d.id)}</span></span><span>${gbs(d.size)}</span></div>
+      ${body}
+      <div class="dmeta"><span>${esc(d.path)}</span><span>R ${rate(d.io.read)} · W ${rate(d.io.write)}</span></div>
+      ${parts}</div>`;
   }).join('');
 }
+
+function renderStorPop() {
+  const pop = $('stor-pop');
+  pop.innerHTML = `<h4>Show drives</h4>${storList.map(d => `
+      <label><input type="checkbox" data-drive="${esc(d.id)}" ${storPrefs.hidden.includes(d.id) ? '' : 'checked'}>
+        <span>${esc(d.model)}<span class="badge">${esc(d.id)}</span></span><small>${gbs(d.size)}${d.mounted ? '' : ' · unmounted'}</small></label>`).join('')}
+    <hr><label><input type="checkbox" data-opt="parts" ${storPrefs.parts ? 'checked' : ''}><span>Show partitions</span></label>
+    <hr><div class="pop-actions"><button type="button" data-act="all">Show all</button><button type="button" data-act="mounted">Mounted only</button></div>`;
+}
+$('stor-gear').addEventListener('click', e => {
+  e.stopPropagation();
+  const pop = $('stor-pop'), open = pop.hidden;
+  pop.hidden = !open; $('stor-gear').setAttribute('aria-expanded', open);
+  if (open) renderStorPop();
+});
+$('stor-pop').addEventListener('click', e => e.stopPropagation());
+$('stor-pop').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.drive) {
+    const h = new Set(storPrefs.hidden);
+    t.checked ? h.delete(t.dataset.drive) : h.add(t.dataset.drive);
+    storPrefs.hidden = [...h];
+  } else if (t.dataset.opt === 'parts') storPrefs.parts = t.checked;
+  saveStor(); renderStorage(storList);
+});
+$('stor-pop').addEventListener('click', e => {
+  const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+  storPrefs.hidden = act === 'all' ? [] : storList.filter(d => !d.mounted).map(d => d.id);
+  saveStor(); renderStorage(storList); renderStorPop();
+});
+document.addEventListener('click', () => { if (!$('stor-pop').hidden) { $('stor-pop').hidden = true; $('stor-gear').setAttribute('aria-expanded', 'false'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('stor-pop').hidden) { $('stor-pop').hidden = true; $('stor-gear').setAttribute('aria-expanded', 'false'); $('stor-gear').focus(); } });
 
 let INFO = {};
 let last = null;
@@ -571,9 +686,7 @@ function render(s) {
     <div class="bar"><div style="width:${d.percent}%;background:var(${d.percent >= 90 ? '--bad' : d.percent >= 75 ? '--warn' : '--c2'})"></div></div></div>`).join('');
 
   // GPUs
-  const gcol = ['--c4', '--c1', '--c3', '--c2'];
   $('gpu-meta').textContent = s.gpus.length ? s.gpus.length + ' device' + (s.gpus.length > 1 ? 's' : '') : 'none detected';
-  $('gpu-legend').innerHTML = s.gpus.map((g, i) => `<span><i style="background:var(${gcol[i % 4]})"></i>${esc(g.card)} busy</span>`).join('');
   $('gpus').innerHTML = s.gpus.map(g => {
     const vp = g.vram_total ? g.vram_used / g.vram_total * 100 : 0;
     return `<div class="gpu"><div style="font-weight:500;margin-bottom:4px">${esc(g.name)} <span style="color:var(--muted);font-weight:400">${esc(g.card)}</span></div>
@@ -591,17 +704,57 @@ function render(s) {
   drawAll();
 }
 
+// Each chart's series; legends are built from this and double as on/off toggles.
+const pctFmt = v => v.toFixed(0) + '%';
+const GPU_COLORS = ['--c4', '--c1', '--c3', '--c2'];
+const CHARTS = {
+  cpu:   { opts: { max: 100, fmt: pctFmt }, series: () => [{ key: 'cpu', label: 'CPU', data: hist.cpu, color: '--c1', fill: true }] },
+  mem:   { opts: { max: 100, fmt: pctFmt }, series: () => [
+           { key: 'ram', label: 'RAM used', data: hist.mem, color: '--c2', fill: true },
+           { key: 'swap', label: 'Swap used', data: hist.swap, color: '--c3' }] },
+  net:   { opts: { fmt: v => bytes(v, 0) }, series: () => [
+           { key: 'rx', label: 'Download', data: hist.rx, color: '--c1', fill: true },
+           { key: 'tx', label: 'Upload', data: hist.tx, color: '--c4' }] },
+  disk:  { opts: { fmt: v => bytes(v, 0) }, series: () => [
+           { key: 'rd', label: 'Read', data: hist.rd, color: '--c2', fill: true },
+           { key: 'wr', label: 'Write', data: hist.wr, color: '--c3' }] },
+  gpu:   { opts: { max: 100, fmt: pctFmt }, series: () => (last ? last.gpus : []).map((g, i) => (
+           { key: g.card, label: g.card + ' busy', data: hist.gpu[i] || [], color: GPU_COLORS[i % 4], fill: i === 0 })) },
+  power: { opts: { fmt: v => v.toFixed(0) + ' W' }, series: () => [
+           { key: 'total', label: 'Total', data: hist.pwT, color: '--c3', fill: true },
+           { key: 'cpu', label: 'CPU', data: hist.pwC, color: '--c1' },
+           { key: 'gpu', label: 'GPU', data: hist.pwG, color: '--c4' }] },
+};
+const HIDDEN_KEY = 'server-monitor.hidden-series.v1';
+const hiddenSeries = new Set(store.get(HIDDEN_KEY, []));
+const legendSig = {};
+function renderLegends() {
+  for (const [name, c] of Object.entries(CHARTS)) {
+    const el = $('lg-' + name); if (!el) continue;
+    const ser = c.series();
+    const sig = ser.map(x => x.key + x.label + hiddenSeries.has(name + ':' + x.key)).join('|');
+    if (legendSig[name] === sig) continue;
+    legendSig[name] = sig;
+    el.innerHTML = ser.map(x => {
+      const on = !hiddenSeries.has(name + ':' + x.key);
+      return `<button class="lg" type="button" data-k="${esc(name + ':' + x.key)}" aria-pressed="${on}" title="Click to ${on ? 'hide' : 'show'} ${esc(x.label)}"><i style="background:var(${x.color})"></i>${esc(x.label)}</button>`;
+    }).join('');
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.legend .lg'); if (!b) return;
+  const k = b.dataset.k;
+  hiddenSeries.has(k) ? hiddenSeries.delete(k) : hiddenSeries.add(k);
+  store.set(HIDDEN_KEY, [...hiddenSeries]);
+  renderLegends(); drawAll();
+});
 function drawAll() {
   if (!last) return;
-  const p = v => v.toFixed(0) + '%';
-  drawChart($('ch-cpu'), [{ data: hist.cpu, color: '--c1', fill: true }], { max: 100, fmt: p });
-  drawChart($('ch-mem'), [{ data: hist.mem, color: '--c2', fill: true }, { data: hist.swap, color: '--c3' }], { max: 100, fmt: p });
-  drawChart($('ch-net'), [{ data: hist.rx, color: '--c1', fill: true }, { data: hist.tx, color: '--c4' }], { fmt: v => bytes(v, 0) });
-  drawChart($('ch-disk'), [{ data: hist.rd, color: '--c2', fill: true }, { data: hist.wr, color: '--c3' }], { fmt: v => bytes(v, 0) });
-  drawChart($('ch-power'), [{ data: hist.pwT, color: '--c3', fill: true }, { data: hist.pwC, color: '--c1' }, { data: hist.pwG, color: '--c4' }],
-            { fmt: v => v.toFixed(0) + ' W' });
-  const gcol = ['--c4', '--c1', '--c3', '--c2'];
-  drawChart($('ch-gpu'), hist.gpu.map((d, i) => ({ data: d, color: gcol[i % 4], fill: i === 0 })), { max: 100, fmt: p });
+  renderLegends();
+  for (const [name, c] of Object.entries(CHARTS)) {
+    const canvas = $('ch-' + name); if (!canvas) continue;
+    drawChart(canvas, c.series().filter(x => !hiddenSeries.has(name + ':' + x.key)), c.opts);
+  }
 }
 window.addEventListener('resize', drawAll);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);

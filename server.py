@@ -105,6 +105,76 @@ def disks():
     return out
 
 
+class Storage:
+    """Every physical drive (mounted or not) with its partitions, via lsblk.
+
+    The device tree is re-read every 30 s (drives rarely change); usage and I/O are live.
+    """
+
+    REFRESH = 30
+
+    def __init__(self):
+        self.tree, self.at = [], 0
+        self.last_io, self.last_t = psutil.disk_io_counters(perdisk=True), time.time()
+
+    def _scan(self):
+        try:
+            out = subprocess.run(
+                ["lsblk", "-J", "-b", "-o", "NAME,PATH,TYPE,SIZE,FSTYPE,LABEL,MODEL,MOUNTPOINTS,RM,TRAN,ROTA"],
+                capture_output=True, text=True, timeout=5).stdout
+            devs = json.loads(out)["blockdevices"]
+        except Exception:
+            return self.tree
+        tree = []
+        for d in devs:
+            if d["type"] != "disk" or d["name"].startswith(("loop", "ram", "zram")):
+                continue
+            parts = d.get("children") or []
+            if not parts and (d.get("fstype") or d.get("mountpoints")):
+                parts = [d]  # filesystem directly on the disk (no partition table)
+            tree.append({
+                "id": d["name"], "path": d["path"], "model": (d.get("model") or "").strip() or d["name"],
+                "size": d["size"], "tran": d.get("tran"), "removable": bool(d.get("rm")),
+                "rotational": bool(d.get("rota")),
+                "parts": [{"name": c["name"], "path": c["path"], "size": c["size"], "fstype": c.get("fstype"),
+                           "label": c.get("label"),
+                           # bind mounts repeat the device; the shortest path is the real mount
+                           "mount": min((m for m in (c.get("mountpoints") or []) if m), key=len, default=None)}
+                          for c in parts],
+            })
+        return tree
+
+    def read(self, now):
+        if now - self.at > self.REFRESH or not self.tree:
+            self.tree, self.at = self._scan(), now
+        io = psutil.disk_io_counters(perdisk=True)
+        dt = max(now - self.last_t, 1e-3)
+        out = []
+        for d in self.tree:
+            parts, used, total = [], 0, 0
+            for p in d["parts"]:
+                q = dict(p, used=None, total=None, percent=None)
+                if p["mount"]:
+                    try:
+                        u = psutil.disk_usage(p["mount"])
+                        q.update(used=u.used, total=u.total, percent=u.percent)
+                        used += u.used
+                        total += u.total
+                    except Exception:
+                        pass
+                parts.append(q)
+            a, b = io.get(d["id"]), self.last_io.get(d["id"])
+            rate = ({"read": (a.read_bytes - b.read_bytes) / dt, "write": (a.write_bytes - b.write_bytes) / dt}
+                    if a and b else {"read": 0, "write": 0})
+            out.append(dict(d, parts=parts, used=used if total else None, total=total or None,
+                            mounted=bool(total), io=rate))
+        self.last_io, self.last_t = io, now
+        return out
+
+
+STORAGE = Storage()
+
+
 def temps():
     out = []
     try:
@@ -285,6 +355,7 @@ class Sampler(threading.Thread):
                 "gpus": gpu_list,
                 "power": power_stats(gpu_list, now),
                 "disks": disks(),
+                "storage": STORAGE.read(now),
                 "disk_io": dio,
                 "net": nics,
                 "temps": tlist,

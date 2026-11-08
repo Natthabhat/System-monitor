@@ -1,0 +1,14 @@
+[Unit]
+Description=Realtime hardware monitor website (port 4400)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/server-monitor
+ExecStart=/usr/bin/python3 %h/server-monitor/server.py
+Environment=MONITOR_PORT=4400
+Restart=always
+RestartSec=3
+Nice=10
+
+[Install]
+WantedBy=default.target

@@ -9,7 +9,7 @@ the browser over Server-Sent Events, with no database, no build step and no fron
 ## What it shows
 
 - **Overview**: CPU, memory, GPU, network, disk I/O, power and hottest sensor at a glance
-- **Gauges**: temperature and load rings plus clock and fan speed dials for the CPU and each GPU, and a RAM load ring
+- **Gauges**: temperature and load rings plus clock and fan speed dials for the CPU and each GPU, and RAM load, cache and swap rings
 - **Storage**: used and free space per drive
 - **Live charts (last 2 minutes)**: CPU (with per-thread bars), memory and swap, network per interface, disk I/O, GPU busy, and power
 - **Power**: CPU package and GPU board power, the total, and the 2-minute average and peak

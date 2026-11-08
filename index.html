@@ -505,13 +505,16 @@ function buildMeters(s) {
     if (g.fan != null) gm.fan = add(b, makeGauge('dial', 'FAN SPEED', 'RPM'));
     m.gpus.push(gm);
   });
-  m.ram = add(panel('m-ram', 'RAM', bytes(s.mem.total) + ' total'), makeGauge('ring', 'LOAD', '%'));
+  const rbox = panel('m-ram', 'RAM', bytes(s.mem.total) + ' total' + (s.swap.total ? ' · ' + bytes(s.swap.total) + ' swap' : ''));
+  m.ram = add(rbox, makeGauge('ring', 'LOAD', '%'));
+  m.cache = add(rbox, makeGauge('ring', 'CACHE', '%'));
+  m.swap = add(rbox, makeGauge('ring', 'SWAP', '%'));
   old.forEach(b => b.remove());
   Layout.apply();
   return m;
 }
 function renderMeters(s) {
-  const key = [s.gpus.length, s.gpus.map(g => g.fan != null).join(), !!s.cpu.fan, !!INFO.cpu_model].join('|');
+  const key = [s.swap.total, s.gpus.length, s.gpus.map(g => g.fan != null).join(), !!s.cpu.fan, !!INFO.cpu_model].join('|');
   if (!meters || key !== meterKey) { meters = buildMeters(s); meterKey = key; }
   const m = meters, r0 = v => Math.round(v).toString();
   const t = s.cpu.temp;
@@ -527,6 +530,11 @@ function renderMeters(s) {
     if (gm.fan) gm.fan.set(g.fan, g.fan_max || 3500, r0(g.fan));
   });
   m.ram.set(s.mem.percent, 100, r0(s.mem.percent), { color: loadColor(s.mem.percent), sub: bytes(s.mem.used, 2) });
+  const cpc = s.mem.cached / s.mem.total * 100;
+  m.cache.set(cpc, 100, r0(cpc), { color: '--c4', sub: bytes(s.mem.cached, 2) });
+  if (s.swap.total) m.swap.set(s.swap.percent, 100, r0(s.swap.percent),
+    { color: s.swap.percent >= 90 ? '--bad' : s.swap.percent >= 70 ? '--warn' : '--c3', sub: `${bytes(s.swap.used, 2)} / ${bytes(s.swap.total)}` });
+  else m.swap.set(null, 100, '', { sub: 'no swap' });
 
   renderStorage(s.storage || []);
 }
